@@ -6,7 +6,7 @@ use windows::{
     Win32::System::LibraryLoader::*,
     Win32::UI::Controls::*,
     Win32::UI::WindowsAndMessaging::*,
-    Win32::Graphics::Gdi::*,
+    Win32::Graphics::Gdi::*
 };
 
 use chrono::Local;
@@ -177,7 +177,7 @@ fn extract_file(entry: &ZipEntry, buffer: &[u8], extract_to_dir: &Path) -> io::R
     // Handle directories
     if entry.file_name.ends_with('/') {
         fs::create_dir_all(&path)?;
-        return Ok(());
+        return Ok(())
     }
 
     if let Some(parent) = path.parent() {
@@ -814,9 +814,9 @@ fn delete_directory(app_name: &str) {
             unsafe { 
                 add_message(
                     "ERROR", 
-                    &format!("Failed to delete directory '{:?}': {}", dir_to_delete, e)
-                ); 
-            }
+                    &format!("Failed to delete directory '{:?}': {}", dir_to_delete, e) 
+                );
+            } 
         } else {
             unsafe {
                 add_message("INFO", &format!("Deleted existing directory at {:?}", dir_to_delete));
@@ -827,9 +827,24 @@ fn delete_directory(app_name: &str) {
     }
 }
 
+fn add_spaces(app_name: &str) -> String {
+    let mut new_name = String::new();
+    let mut last_char_was_lowercase = false;
+
+    for c in app_name.chars() {
+        if c.is_uppercase() && last_char_was_lowercase {
+            new_name.push(' ');
+        }
+        new_name.push(c);
+        last_char_was_lowercase = c.is_lowercase();
+    }
+    new_name
+}
+
 fn create_shortcut(executable_path: &str, shortcut_name: &str) {
     if let Some(start_menu) = get_start_menu_path() {
-        let shortcut_path = start_menu.join(format!("{}.lnk", shortcut_name));
+        let shortcut_name_with_spaces = add_spaces(shortcut_name);
+        let shortcut_path = start_menu.join(format!("{}.lnk", shortcut_name_with_spaces));
         if shortcut_path.exists() {
             if let Err(e) = fs::remove_file(&shortcut_path) {
                 unsafe { add_message("ERROR", &format!("Failed to delete existing shortcut: {}", e)); }
@@ -965,7 +980,7 @@ fn copy_to_clipboard() {
                 SendMessageA(list_hwnd, LVM_GETITEMA, WPARAM(0), LPARAM(&lvi as *const _ as _));
                 let message = String::from_utf8_lossy(&text_buf).trim_end_matches(char::from(0)).to_string();
 
-                text_to_copy.push_str(&format!("{}\t{}\t{}\r\n", time, type_, message));
+                text_to_copy.push_str(&format!("{}\t{} \t{}\r\n", time, type_, message));
             }
 
             if OpenClipboard(null_mut()) != 0 {
