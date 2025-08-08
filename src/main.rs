@@ -968,7 +968,7 @@ fn copy_to_clipboard() {
                 text_to_copy.push_str(&format!("{}\t{}\t{}\r\n", time, type_, message));
             }
 
-            if OpenClipboard(null_mut()) == 0 {
+            if OpenClipboard(null_mut()) != 0 {
                 EmptyClipboard();
 
                 let h_glob = GlobalAlloc(GMEM_MOVEABLE, text_to_copy.len() + 1 );
