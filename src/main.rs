@@ -86,7 +86,15 @@ fn get_local_appdata() -> Option<PathBuf> {
             std::slice::from_raw_parts(path_ptr, len) 
         };
         let os_string: OsString = OsStringExt::from_wide(path_slice);
-        Some(PathBuf::from(os_string))
+        let mut path = PathBuf::from(os_string);
+        path.push("Utils");
+        if !path.exists() {
+            if let Err(e) = fs::create_dir_all(&path) {
+                unsafe { add_message("ERROR", &format!("Failed to create directory {:?}: {}", path, e)); }
+                return None;
+            }
+        }
+        Some(path)
     } else {
         None
     }
