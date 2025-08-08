@@ -101,7 +101,7 @@ fn get_local_appdata() -> Option<PathBuf> {
 fn parse_central_directory(buffer: &[u8]) -> io::Result<Vec<ZipEntry>> {
     let mut entries = Vec::new();
     let mut i = 0;
-	const DEFLATE_SIGNATURE: &[u8] = b"\x50\x4b\x03\x04";
+	    const DEFLATE_SIGNATURE: &[u8] = b"\x50\x4b\x01\x02";
 
     while i + 4 <= buffer.len() {
         if &buffer[i..i + 4] == DEFLATE_SIGNATURE {
@@ -258,23 +258,19 @@ unsafe fn add_message(message_type: &str, message: &str) {
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
-    let mut app_name: Option<String> = None;
+    let mut app_name: String = "AppInstaller".to_string();
     let mut debug_mode = false;
 
     for arg in args {
         if arg == "--debug" {
             debug_mode = true;
         } else {
-            app_name = Some(arg);
+            app_name = arg;
         }
     }
 
-    if app_name.is_none() {
-        eprintln!("Usage: AppInstaller <app_name> [--debug]");
-        return;
-    }
-
     unsafe {
+        APP_NAME = Some(app_name.into_boxed_str());
         DEBUG = debug_mode;
     }
 
@@ -607,7 +603,7 @@ unsafe fn handle_wm_command(wparam: WPARAM) {
 
 fn run_installation(app_name: &str) {
     unsafe {
-        update_installer();
+        //update_installer();
 
         add_message("INFO", &format!("Starting installation for {}", app_name));
 
@@ -857,6 +853,8 @@ fn create_shortcut(executable_path: &str, shortcut_name: &str) {
         unsafe { add_message("ERROR", "Could not find Start Menu path."); }
     }
 }
+
+
 
 fn get_start_menu_path() -> Option<PathBuf> {
     let mut path_buf = [0u16; 300];
