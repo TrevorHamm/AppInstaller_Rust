@@ -1047,7 +1047,9 @@ fn update_installer() {
                         if let Some((_, remote_time)) = newest_remote_file {
                             if remote_time > local_time {
                                 add_message("INFO", "Newer installer found. Updating...");
-                                let new_name = current_exe.with_extension("exe.old");
+                                let now = Local::now();
+                                let timestamp = now.format("%Y%m%d%H%M%S");
+                                let new_name = current_exe.with_extension(format!("exe.old_{}", timestamp));
                                 if let Err(e) = fs::rename(&current_exe, &new_name) {
                                     add_message("ERROR", &format!("Failed to rename old installer: {}", e));
                                     return;
