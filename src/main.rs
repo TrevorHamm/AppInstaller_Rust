@@ -603,7 +603,7 @@ unsafe fn handle_wm_command(wparam: WPARAM) {
 
 fn run_installation(app_name: &str) {
     unsafe {
-        //update_installer();
+        update_installer();
 
         add_message("INFO", &format!("Starting installation for {}", app_name));
 
@@ -989,7 +989,29 @@ fn copy_to_clipboard() {
     }
 }
 
+fn delete_old_installers() {
+    if let Ok(current_exe) = env::current_exe() {
+        if let Some(parent) = current_exe.parent() {
+            if let Ok(entries) = fs::read_dir(parent) {
+                for entry in entries {
+                    if let Ok(entry) = entry {
+                        let path = entry.path();
+                        if let Some(extension) = path.extension() {
+                            if extension == "old" {
+                                if let Err(e) = fs::remove_file(&path) {
+                                    unsafe { add_message("ERROR", &format!("Failed to delete old installer: {}", e)); }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn update_installer() {
+    delete_old_installers();
     unsafe {
         add_message("INFO", "Checking for installer updates...");
         if let Some(local_appdata) = get_local_appdata() {
