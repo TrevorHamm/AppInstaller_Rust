@@ -10,12 +10,12 @@ use windows::{
 };
 
 use chrono::Local;
-use flate2::read::DeflateDecoder;
+
 use mslnk::ShellLink;
 use std::env;
 use std::ffi::CString;
 use std::ffi::OsString;
-use std::fs::{self, File, OpenOptions};
+use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::os::windows::ffi::OsStringExt;
 use std::path::{Path, PathBuf};
@@ -40,13 +40,7 @@ use winapi::um::shlobj::{SHGetKnownFolderPath};
 use winapi::um::winnt::PWSTR;
 use winapi::um::winuser::CF_TEXT;
 
-struct ZipEntry {
-    file_name: String,
-    compressed_size: u32,
-    
-    compression_method: u16,
-    local_header_offset: u32,
-}
+mod zip_utils;
 
 const IDC_LISTVIEW: u16 = 1001;
 const IDC_OK: u16 = 1002;
@@ -98,116 +92,9 @@ fn get_local_appdata() -> Option<PathBuf> {
     }
 }
 
-fn parse_central_directory(buffer: &[u8]) -> io::Result<Vec<ZipEntry>> {
-    let mut entries = Vec::new();
-    let mut i = 0;
-	    const DEFLATE_SIGNATURE: &[u8] = b"\x50\x4b\x01\x02";
 
-    while i + 4 <= buffer.len() {
-        if &buffer[i..i + 4] == DEFLATE_SIGNATURE {
-            if i + 46 > buffer.len() {
-                return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "Incomplete central directory header"));
-            }
 
-            let compression_method = u16::from_le_bytes(buffer[i + 10..i + 12].try_into().unwrap());
-            let compressed_size = u32::from_le_bytes(buffer[i + 20..i + 24].try_into().unwrap());
-            
-            let file_name_length = u16::from_le_bytes(buffer[i + 28..i + 30].try_into().unwrap()) as usize;
-            let extra_field_length = u16::from_le_bytes(buffer[i + 30..i + 32].try_into().unwrap()) as usize;
-            let file_comment_length = u16::from_le_bytes(buffer[i + 32..i + 34].try_into().unwrap()) as usize;
-            let local_header_offset = u32::from_le_bytes(buffer[i + 42..i + 46].try_into().unwrap());
 
-            let header_size = 46;
-            let total_len = file_name_length + extra_field_length + file_comment_length;
-            let start = i + header_size;
-            let end = start + total_len;
-
-            if end > buffer.len() {
-                return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "Incomplete file name or extra fields"));
-            }
-
-            let file_name = String::from_utf8_lossy(&buffer[start..start + file_name_length]).to_string();
-
-            entries.push(ZipEntry {
-                file_name,
-                compressed_size,
-                
-                compression_method,
-                local_header_offset,
-            });
-
-            i = end;
-        } else {
-            i += 1;
-        }
-    }
-
-    Ok(entries)
-}
-
-fn extract_file(entry: &ZipEntry, buffer: &[u8], extract_to_dir: &Path) -> io::Result<()> {
-    let offset = entry.local_header_offset as usize;
-
-    if offset + 30 > buffer.len() {
-        return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "Incomplete local header"));
-    }
-
-    if &buffer[offset..offset + 4] != b"\x50\x4b\x03\x04" {
-        eprintln!(
-            "Invalid local header signature at offset {}: {:?}",
-            offset,
-            &buffer[offset..offset + 4]
-        );
-        return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid local file header signature"));
-    }
-
-    let file_name_length = u16::from_le_bytes(buffer[offset + 26..offset + 28].try_into().unwrap()) as usize;
-    let extra_field_length = u16::from_le_bytes(buffer[offset + 28..offset + 30].try_into().unwrap()) as usize;
-
-    let data_start = offset + 30 + file_name_length + extra_field_length;
-    let data_end = data_start + entry.compressed_size as usize;
-
-    if data_end > buffer.len() {
-        return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "File data exceeds buffer"));
-    }
-
-    let file_data = &buffer[data_start..data_end];
-    let path = extract_to_dir.join(&entry.file_name);
-
-    // Handle directories
-    if entry.file_name.ends_with('/') {
-        fs::create_dir_all(&path)?;
-        return Ok(())
-    }
-
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-
-    let mut output = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(&path)?;
-
-    match entry.compression_method {
-        0 => {
-            // Stored (no compression)
-            output.write_all(file_data)?;
-        }
-        8 => {
-            // Deflate compression
-            let mut decoder = DeflateDecoder::new(file_data);
-            io::copy(&mut decoder, &mut output)?;
-        }
-        _ => {
-            return Err(io::Error::new(io::ErrorKind::Unsupported, format!(
-                "Unsupported compression method: {}", entry.compression_method
-            )));
-        }
-    }
-    Ok(())
-}
 
 unsafe fn add_message(message_type: &str, message: &str) {
     unsafe {
@@ -910,7 +797,7 @@ fn unzip_file(zip_file: &Path, app_name: &str) {
             return;
         }
 
-        let entries = match parse_central_directory(&buffer) {
+        let entries = match zip_utils::parse_central_directory(&buffer) {
             Ok(entries) => entries,
             Err(e) => {
                 unsafe { add_message("ERROR", &format!("Failed to parse zip file: {}", e)); }
@@ -920,7 +807,7 @@ fn unzip_file(zip_file: &Path, app_name: &str) {
 
         for entry in &entries {
             unsafe { add_message("INFO", &format!("Extracting file: {}", entry.file_name)); }
-            if let Err(e) = extract_file(entry, &buffer, &extract_to_dir) {
+            if let Err(e) = zip_utils::extract_file(entry, &buffer, &extract_to_dir) {
                 unsafe { add_message("ERROR", &format!("Failed to extract {}: {}", entry.file_name, e)); }
             }
         }
