@@ -19,6 +19,7 @@ mslnk = "0.1.2"
 sysinfo = "0.29"
 miniz_oxide = "0.8.4"
 flate2 = "1.0.30"
+once_cell = "1.18"
 #zip = "0.6.6"
 
 [profile.release]
