@@ -22,7 +22,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::ptr::null_mut;
 use std::thread;
-use std::time::{Duration, SystemTime};
+//use std::time::{Duration, SystemTime};
+use std::time::{SystemTime};
 use sysinfo::{System, SystemExt};
 use winapi::um::winbase::GlobalAlloc;
 use winapi::um::winbase::GMEM_MOVEABLE;
@@ -124,7 +125,10 @@ unsafe fn add_message(message_type: &str, message: &str) {
                 ..Default::default()
             };
             SendMessageA(
-                list_hwnd, LVM_INSERTITEMA, WPARAM(0), LPARAM(&item as *const _ as _)
+                list_hwnd,
+                LVM_INSERTITEMA,
+                WPARAM(0),
+                LPARAM(&item as *const _ as _),
             );
 
             let time_item = LVITEMA {
@@ -135,7 +139,10 @@ unsafe fn add_message(message_type: &str, message: &str) {
                 ..Default::default()
             };
             SendMessageA(
-                list_hwnd, LVM_SETITEMA, WPARAM(0), LPARAM(&time_item as *const _ as _)
+                list_hwnd,
+                LVM_SETITEMA,
+                WPARAM(0),
+                LPARAM(&time_item as *const _ as _),
             );
 
             let msg_item = LVITEMA {
@@ -146,7 +153,10 @@ unsafe fn add_message(message_type: &str, message: &str) {
                 ..Default::default()
             };
             SendMessageA(
-                list_hwnd, LVM_SETITEMA, WPARAM(0), LPARAM(&msg_item as *const _ as _)
+                list_hwnd,
+                LVM_SETITEMA,
+                WPARAM(0),
+                LPARAM(&msg_item as *const _ as _),
             );
         }
     }
@@ -288,10 +298,10 @@ unsafe fn handle_wm_create(hwnd: HWND) -> LRESULT {
                 ..Default::default()
             };
             SendMessageA(
-                list_hwnd, 
-                LVM_INSERTCOLUMNA, 
-                WPARAM(i as usize), 
-                LPARAM(&lvc as *const _ as _)
+                list_hwnd,
+                LVM_INSERTCOLUMNA,
+                WPARAM(i as usize),
+                LPARAM(&lvc as *const _ as _),
             );
         }
 
@@ -375,10 +385,10 @@ unsafe fn handle_wm_notify(lparam: LPARAM) -> LRESULT {
                     };
                     if let Some(list_hwnd) = LIST_HWND {
                         SendMessageA(
-                            list_hwnd, 
-                            LVM_GETITEMA, 
-                            WPARAM(0), 
-                            LPARAM(&lvi as *const _ as _)
+                            list_hwnd,
+                            LVM_GETITEMA,
+                            WPARAM(0),
+                            LPARAM(&lvi as *const _ as _),
                         );
                     }
 
@@ -505,14 +515,14 @@ fn run_installation(app_name: &str) {
     unsafe {
         update_installer();
 
-        add_message("INFO", &format!("Starting installation for {}", app_name));
+        add_message("INFO", &format!("Starting installation for {}", 
+                app_name));
 
         let process_name = format!("{}.exe", app_name);
         if check_if_running(&process_name) {
             add_message(
                 "ERROR", 
-                &format!(
-                    "Application '{}' is running. Please close it and try again.", 
+                &format!( "'{}' is running. Please close it and try again.", 
                     app_name
                 )
             );
@@ -527,7 +537,8 @@ fn run_installation(app_name: &str) {
             if let Some(local_appdata) = get_local_appdata() {
                 let app_dir = local_appdata.join(app_name);
                 if let Some(exe_path) = find_executable(&app_dir) {
-                    add_message("DEBUG", &format!("Found executable at {:?}", exe_path));
+                    add_message("DEBUG", &format!("Found executable at {:?}", 
+                            exe_path));
                     if let Some(exe_str) = exe_path.to_str() {
                         create_shortcut(exe_str, app_name);
                         if let Err(e) = Command::new(&exe_path).spawn() {
@@ -562,7 +573,8 @@ fn run_installation(app_name: &str) {
                 );
             }
         } else {
-            add_message("ERROR", &format!("Installation failed for {}.", app_name));
+            add_message("ERROR", &format!("Installation failed for {}.", 
+                    app_name));
         }
         add_message("INFO", "Installation process finished.");
     }
@@ -573,7 +585,9 @@ fn find_executable(dir: &Path) -> Option<PathBuf> {
         for entry in entries {
             if let Ok(entry) = entry {
                 let path = entry.path();
-                if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("exe") {
+                if path.is_file()
+                    && path.extension().and_then(|s| s.to_str()) == Some("exe")
+                {
                     return Some(path);
                 }
             }
@@ -612,7 +626,9 @@ fn copy_latest_zip(app_name: &str) -> Option<PathBuf> {
     for entry in entries {
         if let Ok(entry) = entry {
             let path = entry.path();
-            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("zip") {
+            if path.is_file()
+                && path.extension().and_then(|s| s.to_str()) == Some("zip")
+            {
                 if let Ok(metadata) = fs::metadata(&path) {
                     if let Ok(modified) = metadata.modified() {
                         if newest_file.is_none() || 
@@ -688,7 +704,8 @@ fn copy_latest_zip(app_name: &str) -> Option<PathBuf> {
         }
     } else {
         unsafe { 
-            add_message("ERROR", &format!("No .zip files found in {:?}", source_dir_path)); 
+            add_message("ERROR", &format!("No .zip files found in {:?}", 
+                    source_dir_path)); 
         }
     }
     None
@@ -711,11 +728,17 @@ fn copy_with_progress(from: &Path, to: &Path) -> io::Result<()> {
         let progress = (bytes_copied * 100 / file_size) as i32;
         unsafe {
             if let Some(progress_hwnd) = PROGRESS_HWND {
-                SendMessageA(progress_hwnd, PBM_SETPOS, WPARAM(progress as usize), LPARAM(0));
+                SendMessageA(
+                    progress_hwnd,
+                    PBM_SETPOS,
+                    WPARAM(progress as usize),
+                    LPARAM(0),
+                );
             }
         }
-        // REMOVE FOR PRODUCTION: Artificial delay to make progress bar visible for testing
-        thread::sleep(Duration::from_millis(25));
+        // REMOVE FOR PRODUCTION: Artificial delay to make progress bar 
+        // visible for testing
+        //thread::sleep(Duration::from_millis(25));
     }
     Ok(())
 }
@@ -742,14 +765,16 @@ fn uninstall_application(app_name: &str) {
                 unsafe {
                     add_message(
                         "ERROR",
-                        &format!("Failed to delete directory '{:?}': {}", target_dir, e)
+                        &format!("Failed to delete directory '{:?}': {}", 
+                                target_dir, e)
                     );
                 }
             } else {
                 unsafe {
                     add_message(
                         "INFO",
-                        &format!("Deleted existing directory at {:?}", target_dir),
+                        &format!("Deleted existing directory at {:?}", 
+                                target_dir),
                     );
                 }
             }
@@ -758,12 +783,14 @@ fn uninstall_application(app_name: &str) {
             unsafe {
                 add_message(
                     "ERROR",
-                    &format!("Failed to delete shortcut '{:?}': {}", shortcut_path, e),
+                    &format!("Failed to delete shortcut '{:?}': {}", 
+                        shortcut_path, e),
                 );
             }
         } else {
             unsafe {
-                add_message("INFO", &format!("Deleted shortcut at {:?}", shortcut_path));
+                add_message("INFO", &format!("Deleted shortcut at {:?}", 
+                        shortcut_path));
             }
         }
     } else {
@@ -784,14 +811,16 @@ fn uninstall_application(app_name: &str) {
                     unsafe {
                         add_message(
                             "ERROR",
-                            &format!("Failed to delete directory '{:?}': {}", dir_to_delete, e)
+                            &format!("Failed to delete directory '{:?}': {}", 
+                                    dir_to_delete, e)
                         );
                     }
                 } else {
                     unsafe {
                         add_message(
                             "INFO",
-                            &format!("Deleted existing directory at {:?}", dir_to_delete),
+                            &format!("Deleted existing directory at {:?}", 
+                                    dir_to_delete),
                         );
                     }
                 }
@@ -839,7 +868,8 @@ fn create_shortcut(executable_path: &str, shortcut_name: &str) {
     if let Some(start_menu) = start_menu_paths
         .iter()
         .find(|p| p.to_str().unwrap_or("").contains("Local"))
-        .or_else(|| start_menu_paths.first()) { // fallback to first path if local is not found
+        .or_else(|| start_menu_paths.first()) { 
+        // fallback to first path if local is not found
         let shortcut_name_with_spaces = add_spaces(shortcut_name);
         let shortcut_path = start_menu.join(format!(
             "{}.lnk",
@@ -871,11 +901,13 @@ fn create_shortcut(executable_path: &str, shortcut_name: &str) {
 
         if let Err(e) = sl.create_lnk(&shortcut_path) {
             unsafe {
-                add_message("ERROR", &format!("Failed to create shortcut: {}", e));
+                add_message("ERROR", &format!("Failed to create shortcut: {}", 
+                        e));
             }
         } else {
             unsafe {
-                add_message("INFO", &format!("Shortcut created at {:?}", shortcut_path));
+                add_message("INFO", &format!("Shortcut created at {:?}", 
+                        shortcut_path));
             }
         }
     } else {
@@ -942,36 +974,61 @@ fn unzip_file(zip_file: &Path, app_name: &str) {
     if let Some(local_appdata) = get_local_appdata() {
         let extract_to_dir = local_appdata.join(app_name);
         if let Err(e) = fs::create_dir_all(&extract_to_dir) {
-            unsafe { add_message("ERROR", &format!("Failed to create directory {:?}: {}", extract_to_dir, e)); }
+            unsafe {
+                add_message(
+                    "ERROR",
+                    &format!("Failed to create directory {:?}: {}", 
+                            extract_to_dir, e),
+                );
+            }
             return;
         }
 
         let mut file = match File::open(zip_file) {
             Ok(f) => f,
             Err(e) => {
-                unsafe { add_message("ERROR", &format!("Unable to open zip file: {}", e)); }
+                unsafe {
+                    add_message("ERROR", 
+                            &format!("Unable to open zip file: {}", e));
+                }
                 return;
             }
         };
 
         let mut buffer = Vec::new();
         if let Err(e) = file.read_to_end(&mut buffer) {
-            unsafe { add_message("ERROR", &format!("Unable to read zip file: {}", e)); }
+            unsafe {
+                add_message("ERROR", &format!("Unable to read zip file: {}", 
+                        e));
+            }
             return;
         }
 
         let entries = match zip_utils::parse_central_directory(&buffer) {
             Ok(entries) => entries,
             Err(e) => {
-                unsafe { add_message("ERROR", &format!("Failed to parse zip file: {}", e)); }
+                unsafe {
+                    add_message("ERROR", 
+                            &format!("Failed to parse zip file: {}", e));
+                }
                 return;
             }
         };
 
         for entry in &entries {
-            unsafe { add_message("INFO", &format!("Extracting file: {}", entry.file_name)); }
-            if let Err(e) = zip_utils::extract_file(entry, &buffer, &extract_to_dir) {
-                unsafe { add_message("ERROR", &format!("Failed to extract {}: {}", entry.file_name, e)); }
+            unsafe {
+                add_message("INFO", &format!("Extracting file: {}", 
+                        entry.file_name));
+            }
+            if let Err(e) = zip_utils::extract_file(entry, &buffer, 
+                    &extract_to_dir) {
+                unsafe {
+                    add_message(
+                        "ERROR",
+                        &format!("Failed to extract {}: {}", entry.file_name, 
+                                e),
+                    );
+                }
             }
         }
 
@@ -992,7 +1049,8 @@ fn unzip_file(zip_file: &Path, app_name: &str) {
 fn copy_to_clipboard() {
     unsafe {
         if let Some(list_hwnd) = LIST_HWND {
-            let item_count = SendMessageA(list_hwnd, LVM_GETITEMCOUNT, WPARAM(0), LPARAM(0)).0;
+            let item_count = SendMessageA(list_hwnd, LVM_GETITEMCOUNT, 
+                    WPARAM(0), LPARAM(0)).0;
             let mut text_to_copy = String::new();
 
             for i in 0..item_count {
@@ -1005,8 +1063,10 @@ fn copy_to_clipboard() {
                     cchTextMax: text_buf.len() as i32,
                     ..Default::default()
                 };
-                SendMessageA(list_hwnd, LVM_GETITEMA, WPARAM(0), LPARAM(&lvi as *const _ as _));
-                let time = String::from_utf8_lossy(&text_buf).trim_end_matches(char::from(0)).to_string();
+                SendMessageA(list_hwnd, LVM_GETITEMA, WPARAM(0), 
+                        LPARAM(&lvi as *const _ as _));
+                let time = String::from_utf8_lossy(&text_buf).trim_end_matches(
+                        char::from(0)).to_string();
 
                 let lvi = LVITEMA {
                     mask: LVIF_TEXT,
@@ -1016,8 +1076,10 @@ fn copy_to_clipboard() {
                     cchTextMax: text_buf.len() as i32,
                     ..Default::default()
                 };
-                SendMessageA(list_hwnd, LVM_GETITEMA, WPARAM(0), LPARAM(&lvi as *const _ as _));
-                let type_ = String::from_utf8_lossy(&text_buf).trim_end_matches(char::from(0)).to_string();
+                SendMessageA(list_hwnd, LVM_GETITEMA, WPARAM(0), 
+                        LPARAM(&lvi as *const _ as _));
+                let type_ = String::from_utf8_lossy(&text_buf
+                        ).trim_end_matches(char::from(0)).to_string();
 
                 let lvi = LVITEMA {
                     mask: LVIF_TEXT,
@@ -1027,20 +1089,29 @@ fn copy_to_clipboard() {
                     cchTextMax: text_buf.len() as i32,
                     ..Default::default()
                 };
-                SendMessageA(list_hwnd, LVM_GETITEMA, WPARAM(0), LPARAM(&lvi as *const _ as _));
-                let message = String::from_utf8_lossy(&text_buf).trim_end_matches(char::from(0)).to_string();
+                SendMessageA(list_hwnd, LVM_GETITEMA, WPARAM(0), LPARAM(&lvi 
+                        as *const _ as _));
+                let message = String::from_utf8_lossy(&text_buf
+                        ).trim_end_matches(char::from(0)).to_string();
 
-                text_to_copy.push_str(&format!("{}\t{}\t{}\r\n", time, type_, message));
+                text_to_copy.push_str(&format!(
+                    "{}	{}	{}
+",
+                    time,
+                    type_,
+                    message
+                ));
             }
 
             if OpenClipboard(null_mut()) != 0 {
                 EmptyClipboard();
 
-                let h_glob = GlobalAlloc(GMEM_MOVEABLE, text_to_copy.len() + 1 );
+                let h_glob = GlobalAlloc(GMEM_MOVEABLE, text_to_copy.len()+1);
                 let p_glob = GlobalLock(h_glob);
                 if !p_glob.is_null() {
                     let p_glob_char = p_glob as *mut u8;
-                    p_glob_char.copy_from(text_to_copy.as_ptr(), text_to_copy.len());
+                    p_glob_char.copy_from(text_to_copy.as_ptr(), 
+                            text_to_copy.len());
                     p_glob_char.add(text_to_copy.len()).write(0);
                     GlobalUnlock(h_glob);
                     SetClipboardData(CF_TEXT.into(), h_glob);
@@ -1058,9 +1129,11 @@ fn update_installer() {
     unsafe {
         add_message("INFO", "Checking for installer updates...");
         if let Some(local_appdata) = get_local_appdata() {
-            let local_installer_path = local_appdata.join("AppInstaller").join("AppInstaller.exe");
+            let local_installer_path = local_appdata.join("AppInstaller").join(
+                    "AppInstaller.exe");
             if !local_installer_path.exists() {
-                add_message("INFO", "No local installer found. Downloading...");
+                add_message("INFO", 
+                        "No local installer found. Downloading...");
                 get_installer();
                 return;
             }
@@ -1068,17 +1141,33 @@ fn update_installer() {
             if let Ok(current_exe) = env::current_exe() {
                 if let Ok(local_meta) = fs::metadata(&current_exe) {
                     if let Ok(local_time) = local_meta.modified() {
-                        let remote_dir = Path::new(r"C:\dev\apps").join("AppInstaller");
-                        let mut newest_remote_file: Option<(PathBuf, SystemTime)> = None;
+                        let remote_dir = Path::new(r"C:\dev\apps").join(
+                                "AppInstaller");
+                        let mut newest_remote_file: Option<(PathBuf, 
+                                SystemTime)> = None;
                         if let Ok(entries) = fs::read_dir(&remote_dir) {
                             for entry in entries {
                                 if let Ok(entry) = entry {
                                     let path = entry.path();
-                                    if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("zip") {
-                                        if let Ok(metadata) = fs::metadata(&path) {
-                                            if let Ok(modified) = metadata.modified() {
-                                                if newest_remote_file.is_none() || modified > newest_remote_file.as_ref().unwrap().1 {
-                                                    newest_remote_file = Some((path, modified));
+                                    if path.is_file()
+                                        && path
+                                            .extension()
+                                            .and_then(|s| s.to_str()) == Some(
+                                                    "zip")
+                                    {
+                                        if let Ok(metadata) = fs::metadata(
+                                                &path) {
+                                            if let Ok(modified) = 
+                                                    metadata.modified() {
+                                                if newest_remote_file.is_none()
+                                                    || modified
+                                                        > newest_remote_file
+                                                            .as_ref()
+                                                            .unwrap()
+                                                            .1
+                                                {
+                                                    newest_remote_file = Some((
+                                                            path, modified));
                                                 }
                                             }
                                         }
@@ -1089,14 +1178,23 @@ fn update_installer() {
 
                         if let Some((_, remote_time)) = newest_remote_file {
                             if remote_time > local_time {
-                                add_message("INFO", "Newer installer found. Updating...");
-                                let new_name = current_exe.with_extension("exe.old");
-                                if let Err(e) = fs::rename(&current_exe, &new_name) {
-                                    add_message("ERROR", &format!("Failed to rename old installer: {}", e));
+                                add_message("INFO", 
+                                        "Newer installer found. Updating...");
+                                let new_name = current_exe.with_extension(
+                                        "exe.old");
+                                if let Err(e) = fs::rename(&current_exe, 
+                                        &new_name) {
+                                    add_message(
+                                        "ERROR",
+                                        &format!("Failed to rename old installer: {}", e),
+                                    );
                                     return;
                                 }
                                 get_installer();
-                                add_message("INFO", "Installer updated. Please restart the application.");
+                                add_message(
+                                    "INFO",
+                                    "Installer updated. Please restart the application.",
+                                );
                                 PostQuitMessage(0);
                             } else {
                                 add_message("INFO", "Installer is up to date.");
