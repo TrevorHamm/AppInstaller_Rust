@@ -56,6 +56,7 @@ static mut PROGRESS_HWND: Option<HWND> = None;
 static mut COPY_HWND: Option<HWND> = None;
 static mut APP_NAME: Option<Box<str>> = None;
 static mut DEBUG: bool = false;
+static mut EXE_PATH_TO_RUN: Option<PathBuf> = None;
 
 fn to_pstr_null(s: &str) -> PSTR {
     PSTR(CString::new(s).unwrap().into_raw() as *mut u8)
@@ -336,12 +337,12 @@ unsafe fn handle_wm_create(hwnd: HWND) -> LRESULT {
         );
         OK_HWND = Some(ok_hwnd);
 
-        let copy_hwnd = CreateWindowExA(
+                let copy_hwnd = CreateWindowExA(
             WINDOW_EX_STYLE(0),
             s!("BUTTON"),
             s!("Copy to Clipboard"),
             WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0),
-            x_start + btn_width + spacing, 325, btn_width, btn_height,
+            x_start + btn_width + spacing, 325, 150, btn_height,
             hwnd,
             HMENU(IDC_COPY_BUTTON as isize),
             h_instance,
@@ -419,7 +420,7 @@ unsafe fn handle_wm_size(lparam: LPARAM) {
         let button_height = 30;
         let button_width = 120;
         let spacing = 20;
-        let total_button_width = button_width * 3 + spacing * 2;
+        let total_button_width = button_width * 2 + 150 + spacing * 2;
         let button_y = height - button_height - margin;
         let button_x = (width - total_button_width) / 2;
 
@@ -478,7 +479,7 @@ unsafe fn handle_wm_size(lparam: LPARAM) {
                 copy_hwnd,
                 button_x + button_width + spacing,
                 button_y,
-                button_width,
+                150,
                 button_height,
                 true,
             );
@@ -487,7 +488,7 @@ unsafe fn handle_wm_size(lparam: LPARAM) {
         if let Some(cancel_hwnd) = CANCEL_HWND {
             let _ = MoveWindow(
                 cancel_hwnd,
-                button_x + (button_width + spacing) * 2,
+                button_x + button_width + 150 + spacing * 2,
                 button_y,
                 button_width,
                 button_height,
@@ -500,7 +501,15 @@ unsafe fn handle_wm_size(lparam: LPARAM) {
 unsafe fn handle_wm_command(wparam: WPARAM) {
     unsafe {
         match loword(wparam.0 as u32) {
-            x if x == IDC_OK || x == IDC_CANCEL => {
+            x if x == IDC_OK => {
+                if let Some(exe_path) = unsafe { (*&raw const EXE_PATH_TO_RUN).as_ref() } {
+                    if let Err(e) = Command::new(exe_path).spawn() {
+                        add_message("ERROR", &format!("Failed to start application: {}", e));
+                    }
+                }
+                PostQuitMessage(0);
+            }
+            x if x == IDC_CANCEL => {
                 PostQuitMessage(0);
             }
             x if x == IDC_COPY_BUTTON => {
@@ -541,16 +550,8 @@ fn run_installation(app_name: &str) {
                             exe_path));
                     if let Some(exe_str) = exe_path.to_str() {
                         create_shortcut(exe_str, app_name);
-                        if let Err(e) = Command::new(&exe_path).spawn() {
-                            add_message(
-                                "ERROR",
-                                &format!("Failed to start application: {}", e),
-                            );
-                        } else {
-                            add_message(
-                                "INFO",
-                                &format!("Successfully started {}", app_name),
-                            );
+                        unsafe {
+                            EXE_PATH_TO_RUN = Some(exe_path.clone());
                         }
                     } else {
                         add_message(
