@@ -90,7 +90,12 @@ fn get_local_appdata() -> Option<PathBuf> {
         path.push("Utils");
         if !path.exists() {
             if let Err(e) = fs::create_dir_all(&path) {
-                unsafe { add_message("ERROR", &format!("Failed to create directory {:?}: {}", path, e)); }
+                unsafe {
+                    add_message(
+                        "ERROR",
+                        &format!("Failed to create directory {:?}: {}", path, e),
+                    );
+                }
                 return None;
             }
         }
@@ -268,7 +273,9 @@ unsafe fn handle_wm_create(hwnd: HWND) -> LRESULT {
             list_hwnd,
             LVM_SETEXTENDEDLISTVIEWSTYLE,
             WPARAM(0),
-            LPARAM((list_style.0 as u32 | LVS_EX_FULLROWSELECT) as isize),
+            LPARAM(
+                (list_style.0 as u32 | LVS_EX_FULLROWSELECT) as isize
+            ),
         );
 
         let columns = ["Type", "Time", "Message"];
@@ -308,7 +315,9 @@ unsafe fn handle_wm_create(hwnd: HWND) -> LRESULT {
             WINDOW_EX_STYLE(0),
             s!("BUTTON"),
             s!("Close"),
-            WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | BS_DEFPUSHBUTTON as u32),
+            WINDOW_STYLE(
+                WS_CHILD.0 | WS_VISIBLE.0 | BS_DEFPUSHBUTTON as u32
+            ),
             x_start, 325, btn_width, btn_height,
             hwnd,
             HMENU(IDC_OK as isize),
@@ -522,20 +531,35 @@ fn run_installation(app_name: &str) {
                     if let Some(exe_str) = exe_path.to_str() {
                         create_shortcut(exe_str, app_name);
                         if let Err(e) = Command::new(&exe_path).spawn() {
-                            add_message("ERROR", &format!("Failed to start application: {}", e));
+                            add_message(
+                                "ERROR",
+                                &format!("Failed to start application: {}", e),
+                            );
                         } else {
-                            add_message("INFO", &format!("Successfully started {}", app_name));
+                            add_message(
+                                "INFO",
+                                &format!("Successfully started {}", app_name),
+                            );
                         }
                     } else {
-                        add_message("ERROR", "Executable path contains invalid characters.");
+                        add_message(
+                            "ERROR",
+                            "Executable path contains invalid characters.",
+                        );
                     }
                 } else {
-                    add_message("ERROR", &format!("Could not find executable for {}", app_name));
+                    add_message(
+                        "ERROR",
+                        &format!("Could not find executable for {}", app_name),
+                    );
                 }
             }
 
             if let Err(e) = fs::remove_file(&copied_zip_path) {
-                add_message("ERROR", &format!("Failed to delete temporary zip file: {}", e));
+                add_message(
+                    "ERROR",
+                    &format!("Failed to delete temporary zip file: {}", e),
+                );
             }
         } else {
             add_message("ERROR", &format!("Installation failed for {}.", app_name));
@@ -560,7 +584,12 @@ fn find_executable(dir: &Path) -> Option<PathBuf> {
 
 fn copy_latest_zip(app_name: &str) -> Option<PathBuf> {
     let source_dir_path = Path::new(r"C:\dev\apps").join(app_name);
-    unsafe { add_message("DEBUG", &format!("Searching for zip files in {:?}", source_dir_path)); }
+    unsafe {
+        add_message(
+            "DEBUG",
+            &format!("Searching for zip files in {:?}", source_dir_path),
+        );
+    }
 
     let entries = match fs::read_dir(&source_dir_path) {
         Ok(entries) => entries,
@@ -597,7 +626,12 @@ fn copy_latest_zip(app_name: &str) -> Option<PathBuf> {
     }
 
     if let Some((newest_file_path, _)) = newest_file.clone() {
-        unsafe { add_message("DEBUG", &format!("Found latest zip file: {:?}", newest_file_path)); }
+        unsafe {
+            add_message(
+                "DEBUG",
+                &format!("Found latest zip file: {:?}", newest_file_path),
+            );
+        }
         if let Some(local_appdata) = get_local_appdata() {
             let file_name = match newest_file_path.file_name() {
                 Some(name) => name,
@@ -695,7 +729,12 @@ fn check_if_running(process_name: &str) -> bool {
 }
 
 fn uninstall_application(app_name: &str) {
-    unsafe { add_message("DEBUG", &format!("Attempting to uninstall application: {}", app_name)); }
+    unsafe {
+        add_message(
+            "DEBUG",
+            &format!("Attempting to uninstall application: {}", app_name),
+        );
+    }
     let shortcut_name = add_spaces(app_name);
     if let Some((shortcut_path, target_dir)) = find_shortcut(&shortcut_name) {
         if target_dir.exists() {
@@ -708,13 +747,19 @@ fn uninstall_application(app_name: &str) {
                 }
             } else {
                 unsafe {
-                    add_message("INFO", &format!("Deleted existing directory at {:?}", target_dir));
+                    add_message(
+                        "INFO",
+                        &format!("Deleted existing directory at {:?}", target_dir),
+                    );
                 }
             }
         }
         if let Err(e) = fs::remove_file(&shortcut_path) {
             unsafe {
-                add_message("ERROR", &format!("Failed to delete shortcut '{:?}': {}", shortcut_path, e));
+                add_message(
+                    "ERROR",
+                    &format!("Failed to delete shortcut '{:?}': {}", shortcut_path, e),
+                );
             }
         } else {
             unsafe {
@@ -723,7 +768,13 @@ fn uninstall_application(app_name: &str) {
         }
     } else {
         unsafe {
-            add_message("DEBUG", &format!("No existing shortcut found for {}. Checking default location.", app_name));
+            add_message(
+                "DEBUG",
+                &format!(
+                    "No existing shortcut found for {}. Checking default location.",
+                    app_name
+                ),
+            );
         }
         // Fallback to deleting the directory directly if shortcut isn't found
         if let Some(local_appdata) = get_local_appdata() {
@@ -738,7 +789,10 @@ fn uninstall_application(app_name: &str) {
                     }
                 } else {
                     unsafe {
-                        add_message("INFO", &format!("Deleted existing directory at {:?}", dir_to_delete));
+                        add_message(
+                            "INFO",
+                            &format!("Deleted existing directory at {:?}", dir_to_delete),
+                        );
                     }
                 }
             }
@@ -747,7 +801,7 @@ fn uninstall_application(app_name: &str) {
 }
 
 fn find_shortcut(shortcut_name: &str) -> Option<(PathBuf, PathBuf)> {
-    if let Some(start_menu) = get_start_menu_path() {
+    for start_menu in get_start_menu_paths() {
         let shortcut_path = start_menu.join(format!("{}.lnk", shortcut_name));
         if shortcut_path.exists() {
             if let Ok(file) = File::open(&shortcut_path) {
@@ -781,27 +835,48 @@ fn add_spaces(app_name: &str) -> String {
 }
 
 fn create_shortcut(executable_path: &str, shortcut_name: &str) {
-    if let Some(start_menu) = get_start_menu_path() {
+    let start_menu_paths = get_start_menu_paths();
+    if let Some(start_menu) = start_menu_paths
+        .iter()
+        .find(|p| p.to_str().unwrap_or("").contains("Local"))
+        .or_else(|| start_menu_paths.first()) { // fallback to first path if local is not found
         let shortcut_name_with_spaces = add_spaces(shortcut_name);
-        let shortcut_path = start_menu.join(format!("{}.lnk", shortcut_name_with_spaces));
+        let shortcut_path = start_menu.join(format!(
+            "{}.lnk",
+            shortcut_name_with_spaces
+        ));
         if shortcut_path.exists() {
             if let Err(e) = fs::remove_file(&shortcut_path) {
-                unsafe { add_message("ERROR", &format!("Failed to delete existing shortcut: {}", e)); }
+                unsafe {
+                    add_message(
+                        "ERROR",
+                        &format!("Failed to delete existing shortcut: {}", e),
+                    );
+                }
             }
         }
 
         let sl = match ShellLink::new(executable_path) {
             Ok(link) => link,
             Err(e) => {
-                unsafe { add_message("ERROR", &format!("Failed to create shell link: {}", e)); }
+                unsafe {
+                    add_message(
+                        "ERROR",
+                        &format!("Failed to create shell link: {}", e),
+                    );
+                }
                 return;
             }
         };
 
         if let Err(e) = sl.create_lnk(&shortcut_path) {
-            unsafe { add_message("ERROR", &format!("Failed to create shortcut: {}", e)); }
+            unsafe {
+                add_message("ERROR", &format!("Failed to create shortcut: {}", e));
+            }
         } else {
-            unsafe { add_message("INFO", &format!("Shortcut created at {:?}", shortcut_path)); }
+            unsafe {
+                add_message("INFO", &format!("Shortcut created at {:?}", shortcut_path));
+            }
         }
     } else {
         unsafe { add_message("ERROR", "Could not find Start Menu path."); }
@@ -810,21 +885,57 @@ fn create_shortcut(executable_path: &str, shortcut_name: &str) {
 
 
 
-fn get_start_menu_path() -> Option<PathBuf> {
+fn get_local_appdata_root() -> Option<PathBuf> {
+    let mut path_ptr: PWSTR = std::ptr::null_mut();
+    let result = unsafe { 
+        SHGetKnownFolderPath(
+            &FOLDERID_LocalAppData,
+            0,
+            std::ptr::null_mut(),
+            &mut path_ptr
+        ) 
+    };
+    if result == S_OK {
+        let len = unsafe { 
+            (0..).take_while(|&i| *path_ptr.offset(i) != 0).count() 
+        };
+        let path_slice = unsafe { 
+            std::slice::from_raw_parts(path_ptr, len) 
+        };
+        let os_string: OsString = OsStringExt::from_wide(path_slice);
+        Some(PathBuf::from(os_string))
+    } else {
+        None
+    }
+}
+
+fn get_start_menu_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+
+    // Roaming Start Menu
     let mut path_buf = [0u16; 300];
     unsafe {
         if SHGetSpecialFolderPathW(
-            std::ptr::null_mut(), 
-            path_buf.as_mut_ptr(), 
+            std::ptr::null_mut(),
+            path_buf.as_mut_ptr(),
             CSIDL_STARTMENU,
             0
-        ) == 0 {
-            return None;
+        ) != 0 {
+            let path_str = String::from_utf16_lossy(&path_buf);
+            let path_str = path_str.trim_end_matches('\0');
+            paths.push(PathBuf::from(path_str));
         }
     }
-    let path_str = String::from_utf16_lossy(&path_buf);
-    let path_str = path_str.trim_end_matches('\0');
-    Some(PathBuf::from(path_str))
+
+    // Local Start Menu
+    if let Some(mut local_appdata) = get_local_appdata_root() {
+        local_appdata.push(r"Microsoft\Windows\Start Menu\Programs");
+        if local_appdata.exists() {
+            paths.push(local_appdata);
+        }
+    }
+
+    paths
 }
 
 fn unzip_file(zip_file: &Path, app_name: &str) {
@@ -943,29 +1054,7 @@ fn copy_to_clipboard() {
     }
 }
 
-fn delete_old_installers() {
-    if let Ok(current_exe) = env::current_exe() {
-        if let Some(parent) = current_exe.parent() {
-            if let Ok(entries) = fs::read_dir(parent) {
-                for entry in entries {
-                    if let Ok(entry) = entry {
-                        let path = entry.path();
-                        if let Some(extension) = path.extension() {
-                            if extension == "old" {
-                                if let Err(e) = fs::remove_file(&path) {
-                                    unsafe { add_message("ERROR", &format!("Failed to delete old installer: {}", e)); }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 fn update_installer() {
-    delete_old_installers();
     unsafe {
         add_message("INFO", "Checking for installer updates...");
         if let Some(local_appdata) = get_local_appdata() {
@@ -1024,7 +1113,12 @@ fn get_installer() {
     if let Some(copied_zip_path) = copy_latest_zip("AppInstaller") {
         unzip_file(&copied_zip_path, "AppInstaller");
         if let Err(e) = fs::remove_file(&copied_zip_path) {
-            unsafe { add_message("ERROR", &format!("Failed to delete temporary installer zip file: {}", e)); }
+            unsafe {
+                add_message(
+                    "ERROR",
+                    &format!("Failed to delete temporary installer zip file: {}", e),
+                );
+            }
         }
     } else {
         unsafe { add_message("ERROR", "Failed to download installer."); }
