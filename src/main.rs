@@ -9,9 +9,11 @@ mod zip_utils;
 mod install_utils;
 use install_utils::*;
 
-pub static APP_NAME: Lazy<Mutex<Option<Box<str>>>> = Lazy::new(|| Mutex::new(None));
+pub static APP_NAME: Lazy<Mutex<Option<Box<str>>>> = Lazy::new(|| 
+        Mutex::new(None));
 pub static DEBUG: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
-pub static EXE_PATH_TO_RUN: Lazy<Mutex<Option<PathBuf>>> = Lazy::new(|| Mutex::new(None));
+pub static EXE_PATH_TO_RUN: Lazy<Mutex<Option<PathBuf>>> = Lazy::new(|| 
+        Mutex::new(None));
 
 #[derive(Default)]
 pub struct FlexBoxApp {
@@ -117,7 +119,8 @@ mod flexbox_app_ui {
                         },
                         E::OnButtonClick => {
                             if &handle == &evt_ui.button1 {
-                                if let Some(path) = EXE_PATH_TO_RUN.lock().unwrap().take() {
+                                if let Some(path) = 
+                                        EXE_PATH_TO_RUN.lock().unwrap().take() {
                                     Command::new(path)
                                         .spawn()
                                         .expect("Failed to run executable");
@@ -126,20 +129,24 @@ mod flexbox_app_ui {
                             } else if &handle == &evt_ui.button2 {
                                 let mut text = String::new();
                                 for i in 0..evt_ui.listview.len() {
-                                    if let Some(item) = evt_ui.listview.item(i as usize, 0, 256) {
+                                    if let Some(item) = evt_ui.listview.item(
+                                            i as usize, 0, 256) {
                                         text.push_str(&item.text);
                                         text.push_str("\t");
                                     }
-                                    if let Some(item) = evt_ui.listview.item(i as usize, 1, 256) {
+                                    if let Some(item) = evt_ui.listview.item(
+                                            i as usize, 1, 256) {
                                         text.push_str(&item.text);
                                         text.push_str("\t");
                                     }
-                                    if let Some(item) = evt_ui.listview.item(i as usize, 2, 1024) {
+                                    if let Some(item) = evt_ui.listview.item(
+                                            i as usize, 2, 1024) {
                                         text.push_str(&item.text);
                                         text.push_str("\r\n");
                                     }
                                 }
-                                nwg::Clipboard::set_data_text(&evt_ui.window.handle, &text);
+                                nwg::Clipboard::set_data_text(
+                                        &evt_ui.window.handle, &text);
                             } else if &handle == &evt_ui.button3 {
                                 FlexBoxApp::exit(&evt_ui);
                             }

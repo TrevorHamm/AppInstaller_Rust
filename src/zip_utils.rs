@@ -1,5 +1,5 @@
 // It is a lot less code to use the Zip crate but it increases the executable
-// size by 50%.
+// size significantly.
 
 use flate2::read::DeflateDecoder;
 use std::fs::{self, OpenOptions};
@@ -27,20 +27,26 @@ pub fn parse_central_directory(buffer: &[u8]) -> io::Result<Vec<ZipEntry>> {
                 ));
             }
 
-            let compression_method = u16::from_le_bytes(buffer[i + 10..i + 12].try_into().unwrap());
-            let compressed_size = u32::from_le_bytes(buffer[i + 20..i + 24].try_into().unwrap());
+            let compression_method = u16::from_le_bytes(buffer[i + 10..i + 12
+                    ].try_into().unwrap());
+            let compressed_size = u32::from_le_bytes(buffer[i + 20..i + 24
+                    ].try_into().unwrap());
 
             let file_name_length =
-                u16::from_le_bytes(buffer[i + 28..i + 30].try_into().unwrap()) as usize;
+                u16::from_le_bytes(buffer[i + 28..i + 30].try_into().unwrap()) 
+                        as usize;
             let extra_field_length =
-                u16::from_le_bytes(buffer[i + 30..i + 32].try_into().unwrap()) as usize;
+                u16::from_le_bytes(buffer[i + 30..i + 32].try_into().unwrap()) 
+                        as usize;
             let file_comment_length =
-                u16::from_le_bytes(buffer[i + 32..i + 34].try_into().unwrap()) as usize;
+                u16::from_le_bytes(buffer[i + 32..i + 34].try_into().unwrap()) 
+                        as usize;
             let local_header_offset =
                 u32::from_le_bytes(buffer[i + 42..i + 46].try_into().unwrap());
 
             let header_size = 46;
-            let total_len = file_name_length + extra_field_length + file_comment_length;
+            let total_len = file_name_length + extra_field_length + 
+                    file_comment_length;
             let start = i + header_size;
             let end = start + total_len;
 
@@ -52,7 +58,8 @@ pub fn parse_central_directory(buffer: &[u8]) -> io::Result<Vec<ZipEntry>> {
             }
 
             let file_name =
-                String::from_utf8_lossy(&buffer[start..start + file_name_length]).to_string();
+                String::from_utf8_lossy(&buffer[start..start + 
+                        file_name_length]).to_string();
 
             entries.push(ZipEntry {
                 file_name,
@@ -70,7 +77,8 @@ pub fn parse_central_directory(buffer: &[u8]) -> io::Result<Vec<ZipEntry>> {
     Ok(entries)
 }
 
-pub fn extract_file(entry: &ZipEntry, buffer: &[u8], extract_to_dir: &Path) -> io::Result<()> {
+pub fn extract_file(entry: &ZipEntry, buffer: &[u8], extract_to_dir: &Path) -> 
+        io::Result<()> {
     let offset = entry.local_header_offset as usize;
 
     if offset + 30 > buffer.len() {
@@ -93,9 +101,11 @@ pub fn extract_file(entry: &ZipEntry, buffer: &[u8], extract_to_dir: &Path) -> i
     }
 
     let file_name_length =
-        u16::from_le_bytes(buffer[offset + 26..offset + 28].try_into().unwrap()) as usize;
+        u16::from_le_bytes(buffer[offset + 26..offset + 28].try_into().unwrap(
+                )) as usize;
     let extra_field_length =
-        u16::from_le_bytes(buffer[offset + 28..offset + 30].try_into().unwrap()) as usize;
+        u16::from_le_bytes(buffer[offset + 28..offset + 30].try_into().unwrap(
+                )) as usize;
 
     let data_start = offset + 30 + file_name_length + extra_field_length;
     let data_end = data_start + entry.compressed_size as usize;
