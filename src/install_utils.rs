@@ -18,6 +18,10 @@ use chrono::Local;
 use native_windows_gui as nwg;
 use crate::zip_utils;
 use crate::{EXE_PATH_TO_RUN, DEBUG};
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
+
+pub static REMOTE_DIR: Lazy<Mutex<PathBuf>> = Lazy::new(|| Mutex::new(PathBuf::from(r"C:\dev\apps")));
 
 pub fn get_local_appdata(listview: &nwg::ListView) -> Option<PathBuf> {
     let mut path_ptr: PWSTR = std::ptr::null_mut();
@@ -151,7 +155,7 @@ fn update_installer(listview: &nwg::ListView, bar: &nwg::ProgressBar) {
 
 fn perform_installer_update(local_time: SystemTime, current_exe: PathBuf, 
         listview: &nwg::ListView, bar: &nwg::ProgressBar) {
-    let remote_dir = Path::new(r"C:\dev\apps").join(
+    let remote_dir = REMOTE_DIR.lock().unwrap().clone().join(
             "AppInstaller");
     let mut newest_remote_file: Option<(PathBuf, 
             SystemTime)> = None;
@@ -249,7 +253,7 @@ fn uninstall_application(listview: &nwg::ListView, app_name: &str) {
 
 fn copy_latest_zip(listview: &nwg::ListView, bar: &nwg::ProgressBar, 
         app_name: &str) -> Option<PathBuf> {
-    let source_dir_path = Path::new(r"C:\dev\apps").join(app_name);
+    let source_dir_path = REMOTE_DIR.lock().unwrap().clone().join(app_name);
     add_message(&listview, "DEBUG",
         &format!("Searching for zip files in {:?}", source_dir_path));
 
