@@ -342,6 +342,9 @@ pub fn run_installation(listview: &nwg::ListView, bar: &nwg::ProgressBar,
 }
 
 pub fn add_message(listview: &nwg::ListView, message_type: &str, message: &str) {
+    if message_type == "DEBUG" && !*DEBUG.lock().unwrap() {
+        return;
+    }
     let time_str = Local::now().format("%H:%M:%S").to_string();
     listview.insert_item(message_type);
     let new_index = (listview.len() - 1) as i32;
@@ -422,9 +425,7 @@ fn perform_installer_update(local_time: SystemTime, current_exe: PathBuf,
                 return;
             }
             get_installer(&listview, &bar);
-            add_message(&listview, "INFO",
-                "Installer updated. Please restart the application.",
-            );
+            add_message(&listview, "INFO", "Installer updated.");
             //unsafe { PostQuitMessage(0); }
         }
     }
@@ -449,7 +450,7 @@ fn uninstall_application(listview: &nwg::ListView, app_name: &str) {
                     &format!("Failed to delete directory '{:?}': {}", 
                             target_dir, e));
             } else {
-                add_message(&listview, "INFO",
+                add_message(&listview, "DEBUG",
                     &format!("Deleted existing directory at {:?}", 
                             target_dir));
             }
@@ -459,7 +460,7 @@ fn uninstall_application(listview: &nwg::ListView, app_name: &str) {
                 &format!("Failed to delete shortcut '{:?}': {}", 
                     shortcut_path, e));
         } else {
-            add_message(&listview, "INFO", &format!("Deleted shortcut at {:?}", 
+            add_message(&listview, "DEBUG", &format!("Deleted shortcut at {:?}", 
                     shortcut_path));
         }
     } else {
@@ -473,7 +474,7 @@ fn uninstall_application(listview: &nwg::ListView, app_name: &str) {
                         &format!("Failed to delete directory '{:?}': {}", 
                                 dir_to_delete, e));
                 } else {
-                    add_message(&listview, "INFO",
+                    add_message(&listview, "DEBUG",
                         &format!("Deleted existing directory at {:?}", 
                                 dir_to_delete));
                 }
@@ -539,7 +540,7 @@ fn copy_latest_zip(listview: &nwg::ListView, bar: &nwg::ProgressBar,
 
             match result {
                 Ok(_) => {
-                    add_message(&listview, "INFO", &format!(
+                    add_message(&listview, "DEBUG", &format!(
                             "Copied latest version {:?} to {:?}", 
                             file_name, dest_path)); 
                     return Some(dest_path);
@@ -670,7 +671,7 @@ fn create_shortcut(listview: &nwg::ListView, executable_path: &str,
             add_message(&listview, "ERROR", &format!(
                     "Failed to create shortcut: {}", e));
         } else {
-            add_message(&listview, "INFO", 
+            add_message(&listview, "DEBUG", 
                     &format!("Shortcut created at {:?}", shortcut_path));
         }
     } else {
