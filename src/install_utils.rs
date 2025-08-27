@@ -21,7 +21,8 @@ use crate::{EXE_PATH_TO_RUN, DEBUG};
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 
-pub static REMOTE_DIR: Lazy<Mutex<PathBuf>> = Lazy::new(|| Mutex::new(PathBuf::from(r"C:\dev\apps")));
+pub static REMOTE_DIR: Lazy<Mutex<PathBuf>> = Lazy::new(|| 
+        Mutex::new(PathBuf::from(r"C:\dev\apps")));
 
 pub fn get_local_appdata(listview: &nwg::ListView) -> Option<PathBuf> {
     let mut path_ptr: PWSTR = std::ptr::null_mut();
@@ -494,7 +495,6 @@ fn get_start_menu_paths() -> Vec<PathBuf> {
             paths.push(local_appdata);
         }
     }
-
     paths
 }
 
